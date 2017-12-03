@@ -1,7 +1,8 @@
 require "utils";
+require "assets/maps";
 
 local CScreen = require "lib/cscreen";
-local inspect = require "lib/inspect"; -- Deep info about lua tables
+inspect = require "lib/inspect"; -- Deep info about lua tables
 
 local firePart = require "particles/fire";
 
@@ -21,13 +22,13 @@ function love.load()
     -- Screen setup
     -- The extra 200 pixels are for GUI & stuff
     CScreen.init(900, 700, true);
-    CScreen.setColor(192, 203, 220);
+    -- CScreen.setColor(192, 203, 220);
     love.graphics.setBackgroundColor(192, 203, 220);
 
     love.graphics.setDefaultFilter("nearest", "nearest");
-    loadAssets();
-
     map = Map:new();
+
+    loadAssets();
 
     player = Player:new();
     player:setPosition(1, 1);
@@ -36,21 +37,29 @@ end
 function loadAssets()
     -- IMGs
     atlas = love.graphics.newImage("assets/atlas.png");
-    grass_tile = love.graphics.newQuad(0, 0, 25, 25, atlas:getDimensions());
+    tile = {};
+    tile[1] = love.graphics.newQuad(0, 0, 25, 25, atlas:getDimensions());
+    tile[2] = love.graphics.newQuad(50, 0, 25, 25, atlas:getDimensions());
     grid = love.graphics.newQuad(25, 0, 25, 25, atlas:getDimensions());
     bot = love.graphics.newQuad(0, 25, 25, 25, atlas:getDimensions());
     heli = love.graphics.newQuad(25, 25, 13, 13, atlas:getDimensions());
     fire_particle_quad = love.graphics.newQuad(38, 25, 10, 10, atlas:getDimensions());
     bot_fire = createFireParticles(atlas, fire_particle_quad);
+
+    tilesetBatch = love.graphics.newSpriteBatch(atlas, 6 * 6);
+
+    map:update();
 end
 
 function love.draw()
     CScreen.apply();
     for i=0,5*100,100 do
         for j=0,5*100,100 do
-            love.graphics.draw(atlas, grass_tile, i + 50, j + 50, 0, 4, 4);
+            -- love.graphics.draw(atlas, tile0, i + 50, j + 50, 0, 4, 4);
         end
     end
+
+    love.graphics.draw(tilesetBatch, 50, 50, 0, 4, 4);
 
     player:draw();
 

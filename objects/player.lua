@@ -7,14 +7,22 @@ function Player:drawMarker(relative_x, relative_y)
     local cy = (y*100)-50;
     local size = 4;
 
-    if check_collision(cx, cy, cx+100, cy+100, mouseX, mouseY) then
-        size = 4 + math.sin(self.rot) * 0.2;
+    if x < 1 or y < 1 or x > 6 or y > 6 then
+        return;
     end
 
-    love.graphics.circle("fill", mouseX, mouseY, 30);
+    local canMove = map:canMove(x, y)
 
-    
-    if map.canMove(x, y) then
+    if check_collision(cx, cy, cx+100, cy+100, mouseX, mouseY) and canMove then
+        size = 4 + math.sin(self.rot) * 0.2;
+
+        if love.mouse.isDown(1) then
+            self.grid_x = x;
+            self.grid_y = y;
+        end
+    end
+
+    if canMove then
         love.graphics.setColor(99, 199, 77); -- Endesga Rules
     else
         love.graphics.setColor(248, 59, 68);
@@ -31,9 +39,11 @@ end
 
 function Player:draw()
     self:drawMarker(1, 0);
+    self:drawMarker(-1, 0);
     self:drawMarker(0, 1);
+    self:drawMarker(0, -1);
 
-    love.graphics.draw(atlas, bot, self:screenX(), self:screenY(), math.cos(self.rot)*.010, 4, 4, 12.5, 4);
+    love.graphics.draw(atlas, bot, self:screenX(), self:screenY(), math.cos(self.rot)*.010, 4, 4- math.sin(self.rot) * 0.1, 12.5, 4);
     love.graphics.draw(atlas, heli, self:screenX(), self:screenY(), self.rot, 4, 4, 6.5, 6.5);
 end
 
