@@ -23,9 +23,9 @@ function Player:drawMarker(relative_x, relative_y)
     end
 
     if canMove then
-        love.graphics.setColor(99, 199, 77); -- Endesga Rules
+        green();
     else
-        love.graphics.setColor(248, 59, 68);
+        red();
     end
     
     if os.time()%2 == 0 then
@@ -38,10 +38,12 @@ function Player:drawMarker(relative_x, relative_y)
 end
 
 function Player:draw()
-    self:drawMarker(1, 0);
-    self:drawMarker(-1, 0);
-    self:drawMarker(0, 1);
-    self:drawMarker(0, -1);
+    if playerTurn then
+        self:drawMarker(1, 0);
+        self:drawMarker(-1, 0);
+        self:drawMarker(0, 1);
+        self:drawMarker(0, -1);
+    end
 
     love.graphics.draw(atlas, bot, self:screenX(), self:screenY(), math.cos(self.rot)*.010, 4, 4- math.sin(self.rot) * 0.1, 12.5, 4);
     love.graphics.draw(atlas, heli, self:screenX(), self:screenY(), self.rot, 4, 4, 6.5, 6.5);
