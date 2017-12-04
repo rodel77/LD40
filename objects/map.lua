@@ -43,7 +43,6 @@ function Map:update()
 end
 
 function Map:set(grid_x, grid_y, val)
-    print(grid_x, grid_y, val);
     self.currentMap[grid_y][grid_x] = val;
 end
 

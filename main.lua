@@ -12,11 +12,17 @@ local Player =  require "objects/player";
 local AI = require "objects/ai";
 local Map = require "objects/map";
 
+-- PathFinding: https://github.com/Yonaba/Jumper (First we meassure the nearest tile to attack player, and then we use jumper to make a path from the bot to that tile!)
+-- Cause time reasons, the bot its just offensive, it cannot hide from player, this may take too much time for a ld :/
+Grid = require "lib.jumper.grid";
+Pathfinder = require "lib.jumper.pathfinder";
+
 -- State
 state = 0; -- 0 Main Menu, 1 Tutorial, 2 Play
 tutorialStep = 0;
 playerTurn = true;
 remainingMoves = 1;
+currentMoves = 1;
 mouseX = 0;
 mouseY = 0;
 attackEnd = -1;
@@ -37,8 +43,11 @@ function love.load()
     -- Screen setup
     -- The extra 300 pixels are for GUI & stuff
     CScreen.init(WIDTH, HEIGHT, true);
+    print(inspect(Pathfinder:getFinders()))
     -- CScreen.setColor(192, 203, 220);
     love.graphics.setBackgroundColor(192, 203, 220);
+
+    love.filesystem.setIdentity('rodel77-LD40');
 
     love.graphics.setDefaultFilter("nearest", "nearest");
     map = Map:new();
@@ -74,6 +83,10 @@ function loadAssets()
     heal_bar = love.graphics.newQuad(36, 38, 1, 10, atlas:getDimensions());
     icon_laser = love.graphics.newQuad(38, 35, 10, 10, atlas:getDimensions());
     icon_ready = love.graphics.newQuad(38, 45, 10, 10, atlas:getDimensions());
+
+    theme = love.audio.newSource("assets/theme.ogg");
+    theme:setLooping(true);
+    theme:play();
 
     tilesetBatch = love.graphics.newSpriteBatch(atlas, 6 * 6);
 end
@@ -132,6 +145,7 @@ function love.draw()
             love.graphics.setColor(254, 174, 52);
             if dpress and playerTurn then
                 player:doAttack();
+                remainingMoves = remainingMoves - 1;
             end
         end
         if not playerTurn or remainingMoves < 1 then
@@ -146,6 +160,11 @@ function love.draw()
         -- Next BTN
         if check_collision(650+25, 250, 650+25+(100*3), 250+(25*3), mouseX, mouseY) then
             love.graphics.setColor(254, 174, 52);
+            if playerTurn and dpress and remainingMoves==0 then
+                playerTurn = false;
+                remainingMoves = currentMoves;
+                aibot:computeMovement();
+            end
         end
         if not playerTurn then
             gray();

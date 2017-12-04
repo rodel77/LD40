@@ -4,6 +4,8 @@ end
 
 function lerp(a,b,t) return (1-t)*a + t*b end
 
+function math.dist(x1,y1, x2,y2) return ((x2-x1)^2+(y2-y1)^2)^0.5 end
+
 function black()
     love.graphics.setColor(24, 20, 37); -- Endesga Rules
 end

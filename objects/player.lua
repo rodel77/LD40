@@ -24,6 +24,25 @@ function Player:drawMarker(relative_x, relative_y)
 
         if love.mouse.isDown(1) then
             self:setPosition(x, y);
+            local nearX, nearY, nearDist = self:calculateDistance();
+            -- PF by Jumper
+            local grid = Grid(map.currentMap);
+            local finder = Pathfinder(grid, "JPS", 1);
+            finder:setMode("ORTHOGONAL");
+
+            print(inspect(grid))
+            local path = finder:getPath(aibot.grid_x, aibot.grid_y, nearX, nearY);
+            if path then
+                print(('Path found: %.2f'):format(path:getLength()));
+                for node,count in path:nodes() do
+                    print(('Step: %d - x: %d - y: %d'):format(count, node:getX(), node:getY()));
+                    love.graphics.rectangle("fill", (node:getX()*100)-50, (node:getY()*100)-50, 100, 100);
+                end
+            end
+
+            local screenShot = love.graphics.newScreenshot();
+            screenShot:encode('png', 'test.png');
+
             -- remainingMoves = remainingMoves - 1;
         end
     end
@@ -41,6 +60,31 @@ function Player:drawMarker(relative_x, relative_y)
     end
     
     love.graphics.setColor(255, 255, 255);
+
+end
+
+function Player:calculateDistance()
+    local nearX = 0;
+    local nearY = 0;
+    local nearDist = -1;
+
+    for i=self.grid_y-1,1,-1 do
+        local val = map:get(self.grid_x, i);
+        if val == 2 then
+            break
+        end
+
+        local distance = math.dist(aibot.grid_x, aibot.grid_y, self.grid_x, i);
+        if nearDist == -1 or distance < nearDist then
+            nearX = self.grid_x;
+            nearY = i;
+            nearDist = distance;
+        end
+
+        -- love.graphics.print(distance, self:staticX(), (i*100)-50);
+    end
+
+    return nearX, nearY, nearDist;
 end
 
 function Player:draw()
@@ -70,7 +114,7 @@ end
 function Player:attack()
     if self:damageAttack()==3 then
         aibot.heal = aibot.heal - 1;
-        shakeEnd = os.time()+2;
+        attackEnd = os.time()+2;
     end
 end
 
