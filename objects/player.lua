@@ -48,12 +48,6 @@ function Player:drawMarker(relative_x, relative_y)
 
 end
 
-function Player:rect(gx, gy, dist)
-    black()
-    love.graphics.print(math.floor(dist), (gx*100)-50, (gy*100)-50);
-    white()
-end
-
 function Player:calculateDistance()
     local nearX = 0;
     local nearY = 0;
@@ -67,7 +61,6 @@ function Player:calculateDistance()
         end
 
         local distance = math.dist(aibot.grid_x, aibot.grid_y, self.grid_x, i);
-        self:rect(self.grid_x, i, distance);
         if nearDist == -1 or distance < nearDist then
             nearX = self.grid_x;
             nearY = i;
@@ -83,7 +76,6 @@ function Player:calculateDistance()
         end
 
         local distance = math.dist(aibot.grid_x, aibot.grid_y, i, self.grid_y);
-        self:rect(i, self.grid_y, distance);
         if nearDist == -1 or distance < nearDist then
             nearX = i;
             nearY = self.grid_y;
@@ -99,7 +91,6 @@ function Player:calculateDistance()
         end
 
         local distance = math.dist(aibot.grid_x, aibot.grid_y, i, self.grid_y);
-        self:rect(i, self.grid_y, distance);
         if nearDist == -1 or distance < nearDist then
             nearX = i;
             nearY = self.grid_y;
@@ -115,7 +106,6 @@ function Player:calculateDistance()
         end
 
         local distance = math.dist(aibot.grid_x, aibot.grid_y, self.grid_x, i);
-        self:rect(self.grid_x, i, distance);
         if nearDist == -1 or distance < nearDist then
             nearX = self.grid_x;
             nearY = i;

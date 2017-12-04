@@ -31,9 +31,7 @@ function AI:attack()
                 switchTurn();
             else
                 self.attacking = false;
-                print("reattacking")
                 self.attackCron = cron.after(1.5, function()
-                    print("recomputing..");
                     self:computeMovement();
                 end);
             end
@@ -60,7 +58,6 @@ function AI:gotoPath()
 
     -- Calculate PathFinding
     local nearX, nearY, nearDist = player:calculateDistance(); -- Calculate the nearest node "from the player", and then use pathfinding
-    print(nearX, nearY, nearDist);
     local grid = Grid(map.currentMap); -- Use the current map as pf data, 1 is walkable
     local finder = Pathfinder(grid, "JPS", 1);
     finder:setMode("ORTHOGONAL"); -- 4 directions

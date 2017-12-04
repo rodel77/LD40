@@ -253,7 +253,7 @@ Created in Love2D]], 10, 400);
         white();
     end
     dpress = false;
-    CScreen:cease();
+    -- CScreen:cease();
 end
 
 function switchTurn()
