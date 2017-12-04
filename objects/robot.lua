@@ -4,17 +4,20 @@ IRobot = {
     rot = 0,
     deg = math.random(1, 359),
     heal = 10,
-    heal_barLerp = 10,
+    heal_barLerp = 100,
     attacking = false,
     sin = 0,
-    attackTime = -1,
 };
 IRobotMT = {__index = IRobot};
 
 function IRobot:draw()
 end
 
-function IRobot:update()
+function IRobot:update(dt)
+    self:superUpdate(dt);
+end
+
+function IRobot:superUpdate(dt)
     self.rot = self.rot + 0.16;
     self.deg = self.deg + 1;
     if self.deg >= 360 then
@@ -22,15 +25,6 @@ function IRobot:update()
     end
 
     self.sin = math.sin(self.rot);
-
-    if self.attackTime~=-1 and self.attackTime<os.time() then
-        self.attackTime = -1;
-        self:attack();
-    end
-
-    if self.attacking and attackEnd==-1 then
-        self.attacking = false;
-    end
 end
 
 function IRobot:screenX()
@@ -65,7 +59,7 @@ function IRobot:healBar()
 end
 
 function IRobot:showAttack()
-    --UP
+    -- UP
     for i=self.grid_y-1,1,-1 do
         local val = map:get(self.grid_x, i);
         if val > 1 then
@@ -173,11 +167,6 @@ end
 
 function IRobot:getID()
     return 4;
-end
-
-function IRobot:attack()
-    attackEnd = os.time()+1.3;
-    self.attacking = true;
 end
 
 function IRobot:isAI()

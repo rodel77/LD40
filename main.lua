@@ -1,8 +1,8 @@
 require "utils";
 require "assets/maps";
 
-local CScreen = require "lib/cscreen";
-local patchy = require "lib/patchy";
+local CScreen = require "lib/cscreen"; -- GIT: https://github.com/CodeNMore/CScreen
+local patchy = require "lib/patchy"; -- GIT: https://github.com/excessive/patchy
 inspect = require "lib/inspect"; -- Deep info about lua tables
 
 local firePart = require "particles/fire";
@@ -17,15 +17,19 @@ local Map = require "objects/map";
 Grid = require "lib.jumper.grid";
 Pathfinder = require "lib.jumper.pathfinder";
 
+cron = require "lib.cron"; -- GIT: https://github.com/kikito/cron.lua
+
 -- State
-state = 0; -- 0 Main Menu, 1 Tutorial, 2 Play
-tutorialStep = 0;
+state = 0; -- 0 Main Menu, 1 Play, 2 Win/Death
 playerTurn = true;
 remainingMoves = 1;
 currentMoves = 1;
 mouseX = 0;
 mouseY = 0;
-attackEnd = -1;
+shaking = false;
+
+winner = "None";
+winTimer = nil;
 
 upress = false;
 dpress = false;
@@ -43,7 +47,6 @@ function love.load()
     -- Screen setup
     -- The extra 300 pixels are for GUI & stuff
     CScreen.init(WIDTH, HEIGHT, true);
-    print(inspect(Pathfinder:getFinders()))
     -- CScreen.setColor(192, 203, 220);
     love.graphics.setBackgroundColor(192, 203, 220);
 
@@ -63,6 +66,14 @@ function loadAssets()
     -- Font
     pressStart = love.graphics.newFont("assets/PressStart.ttf", 24);
     love.graphics.setFont(pressStart);
+
+    -- Sound
+    snd_death = love.audio.newSource("assets/death.wav" ,"static")
+    snd_next = love.audio.newSource("assets/next.wav" ,"static")
+    snd_move = love.audio.newSource("assets/move.wav" ,"static")
+    snd_charge = love.audio.newSource("assets/charge.wav" ,"static")
+    snd_laser = love.audio.newSource("assets/laser.wav" ,"static")
+    snd_hit = love.audio.newSource("assets/hit.wav" ,"static")
 
     -- IMGs
     atlas = love.graphics.newImage("assets/atlas.png");
@@ -85,50 +96,71 @@ function loadAssets()
     icon_ready = love.graphics.newQuad(38, 45, 10, 10, atlas:getDimensions());
 
     theme = love.audio.newSource("assets/theme.ogg");
-    theme:setLooping(true);
     theme:play();
 
     tilesetBatch = love.graphics.newSpriteBatch(atlas, 6 * 6);
 end
 
+function checkDeath()
+    if aibot.heal == 0 or player.heal == 0 then
+        playerTurn = false;
+
+        if aibot.heal == 0 then
+            winner = "You";
+        else
+            winner = "Bad Bot"
+        end
+
+        snd_death:play();
+        theme:pause();
+        winTimer = cron.after(2, function()
+            state = 2;
+        end);
+    end
+end
+
 function love.draw()
     CScreen.apply();
 
-    if attackEnd~=-1 then
-        if os.time()>=attackEnd then
-            attackEnd = -1;
-        end
+    if shaking then
         love.graphics.translate(math.random(-2, 2), math.random(-2, 2));
     end
 
     if state == 0 then
         love.graphics.setColor(0, 0, 0);
-        love.graphics.print("Greedy Robot Fight", (WIDTH/2)-pressStart:getWidth("Greedy Robot Fight")/2, 30+math.sin(DEG), 0, 1, 1);
+        love.graphics.print("Greedy Robot Fight", (WIDTH/2)-pressStart:getWidth("Greedy Robot Fight")/2, 60+math.sin(DEG), 0, 1, 1);
+
+        love.graphics.print(
+[[Created by @therodel77 for LudumDare 40
+        
+How to Play:
++ Move clicking the green squares
++ Damage in four directions with Laser
++ Each bot turn you have 1 more move
++ But the but also has another move
+
+Created in Love2D]], 10, 400);
         love.graphics.setColor(255, 255, 255);
 
-        -- Tutorial
-        if check_collision((WIDTH/2)-100*4/2, 100, ((WIDTH/2)-100*4/2)+100*4, 100+25*4, mouseX, mouseY) then
+        -- Play
+        if check_collision((WIDTH/2)-100*4/2, (HEIGHT/2)-(25*4), ((WIDTH/2)-100*4/2)+100*4, (HEIGHT/2)-(25*4)+25*4, mouseX, mouseY) then
             if dpress then
+                playerTurn = true;
+                map.currentMap = maps[1];
                 map:update();
                 player:setPosition(map.playerX, map.playerY);
                 aibot:setPosition(map.botX, map.botY);
-                tutorialStep = 0;
                 state = 1;
+                currentMoves = 1;
+                remainingMoves = 1;
+                dpress = false;
             end
             love.graphics.setColor(254, 174, 52);
         end
-        love.graphics.draw(atlas, side_pane, (WIDTH/2)-100*4/2, 100, 0, 4, 4);
-        draw_shadowy_center_text("How to play", (WIDTH/2), 100+25*4/2);
+        
+        love.graphics.draw(atlas, side_pane, (WIDTH/2)-100*4/2, (HEIGHT/2)-(25*4), 0, 4, 4);
+        draw_shadowy_center_text("Play", (WIDTH/2), (HEIGHT/2)-(25*4)/2);
         white();
-
-        -- Play
-        if check_collision((WIDTH/2)-100*4/2, 250, ((WIDTH/2)-100*4/2)+100*4, 250+25*4, mouseX, mouseY) then
-            love.graphics.setColor(254, 174, 52);
-        end
-        love.graphics.draw(atlas, side_pane, (WIDTH/2)-100*4/2, 250, 0, 4, 4);
-        draw_shadowy_center_text("Play", (WIDTH/2), 250+25*4/2);
-        white();
-        -- love.graphics.draw(atlas, button, (WIDTH/2)-52*6/2, 70, 0, 6, 6);
     elseif state == 1 then
         love.graphics.draw(tilesetBatch, 50, 50, 0, 4, 4);
         local text = "Bot turn";
@@ -143,12 +175,12 @@ function love.draw()
         -- Laser BTN
         if check_collision(650+25, 150, 650+25+(100*3), 150+(25*3), mouseX, mouseY) then
             love.graphics.setColor(254, 174, 52);
-            if dpress and playerTurn then
+            if dpress and playerTurn and not player.attacking then
                 player:doAttack();
                 remainingMoves = remainingMoves - 1;
             end
         end
-        if not playerTurn or remainingMoves < 1 then
+        if not playerTurn or remainingMoves < 1 or player.attacking then
             gray();
         end
 
@@ -160,11 +192,13 @@ function love.draw()
         -- Next BTN
         if check_collision(650+25, 250, 650+25+(100*3), 250+(25*3), mouseX, mouseY) then
             love.graphics.setColor(254, 174, 52);
-            if playerTurn and dpress and remainingMoves==0 then
-                playerTurn = false;
-                remainingMoves = currentMoves;
+            if playerTurn and dpress and remainingMoves==0 and not player.attacking then
+                switchTurn();
                 aibot:computeMovement();
             end
+        end
+        if not playerTurn or remainingMoves > 0 or player.attacking then
+            gray();
         end
         if not playerTurn then
             gray();
@@ -176,10 +210,8 @@ function love.draw()
         white();
 
         -- Remaining Moves
-        if playerTurn then
-            love.graphics.draw(atlas, side_pane, 650+25, 350, 0, 3, 3);
-            draw_shadowy_center_text(remainingMoves.." remaining moves!", 650+25+(100*3/2), 350+(25*3/2), .6);
-        end
+        love.graphics.draw(atlas, side_pane, 650+25, 350, 0, 3, 3);
+        draw_shadowy_center_text(remainingMoves.." remaining moves!", 650+25+(100*3/2), 350+(25*3/2), .6);
 
         if playerTurn then
             player:draw();
@@ -188,20 +220,75 @@ function love.draw()
             aibot:draw();
             player:draw();
         end
+    else
+        black();
+        --Click on play again to play a random map!
+        love.graphics.print(winner.." win! \n\n", (WIDTH/2)-pressStart:getWidth(winner.." win!")/2, 40, 0, 1, 1);
+        love.graphics.print("Click on play again to play a random map!", (WIDTH/2)-pressStart:getWidth("Click on play again to play a random map!")/2, 60, 0, 1, 1);
+        white();
+
+        if check_collision((WIDTH/2)-100*4/2, (HEIGHT/2)-(25*4), ((WIDTH/2)-100*4/2)+100*4, (HEIGHT/2)-(25*4)+25*4, mouseX, mouseY) then
+            if dpress then
+                playerTurn = true;
+                map.currentMap = maps[math.random(#maps)];
+                map:update();
+                aibot.heal = 10;
+                aibot.heal_barLerp = 100;
+                aibot.attacking = false;
+                player.heal = 10;
+                player.heal_barLerp = 100;
+                player.attacking = false;
+                player:setPosition(map.playerX, map.playerY);
+                aibot:setPosition(map.botX, map.botY);
+                currentMoves = 1;
+                remainingMoves = 1;
+                dpress = false;
+                state = 1;
+            end
+            love.graphics.setColor(254, 174, 52);
+        end
+        
+        love.graphics.draw(atlas, side_pane, (WIDTH/2)-100*4/2, (HEIGHT/2)-(25*4), 0, 4, 4);
+        draw_shadowy_center_text("Play Again", (WIDTH/2), (HEIGHT/2)-(25*4)/2);
+        white();
     end
-    CScreen.cease();
     dpress = false;
+    CScreen:cease();
 end
+
+function switchTurn()
+    snd_next:play();
+    playerTurn = not playerTurn; -- Switch
+    remainingMoves = currentMoves;
+end
+
+function doShake()
+    shaking = true;
+    shakeTimer = cron.after(1.5, function()
+        shaking = false;
+    end);
+end
+
+local numgen = false;
 
 function love.update(dt)
     mouseX, mouseY = CScreen.project(love.mouse.getX(), love.mouse.getY()); -- This project function is a life saver
     
+    if shakeTimer then
+        if shakeTimer:update(dt) then
+            shakeTimer = nil;
+        end
+    end
+    if winTimer then
+        winTimer:update(dt);
+    end
+
     if state == 0 then
         DEG = DEG + 0.1;
     elseif state == 1 then
         bot_fire:update(dt);
-        aibot:update();
-        player:update();
+        aibot:update(dt);
+        player:update(dt);
     end
     upress = false;
 end

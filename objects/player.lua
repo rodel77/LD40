@@ -1,4 +1,6 @@
-Player = {};
+Player = {
+    attackCron = nil
+};
 
 function Player:new()
     local o = Player;
@@ -22,28 +24,11 @@ function Player:drawMarker(relative_x, relative_y)
     if check_collision(cx, cy, cx+100, cy+100, mouseX, mouseY) and canMove then
         size = 4 + math.sin(self.rot) * 0.2;
 
-        if love.mouse.isDown(1) then
+        if dpress then
             self:setPosition(x, y);
-            local nearX, nearY, nearDist = self:calculateDistance();
-            -- PF by Jumper
-            local grid = Grid(map.currentMap);
-            local finder = Pathfinder(grid, "JPS", 1);
-            finder:setMode("ORTHOGONAL");
+            snd_move:play();
 
-            print(inspect(grid))
-            local path = finder:getPath(aibot.grid_x, aibot.grid_y, nearX, nearY);
-            if path then
-                print(('Path found: %.2f'):format(path:getLength()));
-                for node,count in path:nodes() do
-                    print(('Step: %d - x: %d - y: %d'):format(count, node:getX(), node:getY()));
-                    love.graphics.rectangle("fill", (node:getX()*100)-50, (node:getY()*100)-50, 100, 100);
-                end
-            end
-
-            local screenShot = love.graphics.newScreenshot();
-            screenShot:encode('png', 'test.png');
-
-            -- remainingMoves = remainingMoves - 1;
+            remainingMoves = remainingMoves - 1;
         end
     end
 
@@ -63,11 +48,18 @@ function Player:drawMarker(relative_x, relative_y)
 
 end
 
+function Player:rect(gx, gy, dist)
+    black()
+    love.graphics.print(math.floor(dist), (gx*100)-50, (gy*100)-50);
+    white()
+end
+
 function Player:calculateDistance()
     local nearX = 0;
     local nearY = 0;
     local nearDist = -1;
 
+    -- UP
     for i=self.grid_y-1,1,-1 do
         local val = map:get(self.grid_x, i);
         if val == 2 then
@@ -75,24 +67,74 @@ function Player:calculateDistance()
         end
 
         local distance = math.dist(aibot.grid_x, aibot.grid_y, self.grid_x, i);
+        self:rect(self.grid_x, i, distance);
         if nearDist == -1 or distance < nearDist then
             nearX = self.grid_x;
             nearY = i;
             nearDist = distance;
         end
-
-        -- love.graphics.print(distance, self:staticX(), (i*100)-50);
     end
+
+    -- LEFT
+    for i=self.grid_x-1,1,-1 do
+        local val = map:get(i, self.grid_y);
+        if val == 2 then
+            break
+        end
+
+        local distance = math.dist(aibot.grid_x, aibot.grid_y, i, self.grid_y);
+        self:rect(i, self.grid_y, distance);
+        if nearDist == -1 or distance < nearDist then
+            nearX = i;
+            nearY = self.grid_y;
+            nearDist = distance;
+        end
+    end
+
+    -- RIGHT
+    for i=self.grid_x+1,6 do
+        local val = map:get(i, self.grid_y);
+        if val == 2 then
+            break
+        end
+
+        local distance = math.dist(aibot.grid_x, aibot.grid_y, i, self.grid_y);
+        self:rect(i, self.grid_y, distance);
+        if nearDist == -1 or distance < nearDist then
+            nearX = i;
+            nearY = self.grid_y;
+            nearDist = distance;
+        end
+    end
+
+    -- DOWN
+    for i=self.grid_y+1,6 do
+        local val = map:get(self.grid_x, i);
+        if val == 2 then
+            break
+        end
+
+        local distance = math.dist(aibot.grid_x, aibot.grid_y, self.grid_x, i);
+        self:rect(self.grid_x, i, distance);
+        if nearDist == -1 or distance < nearDist then
+            nearX = self.grid_x;
+            nearY = i;
+            nearDist = distance;
+        end
+    end
+
+    -- local screen = love.graphics.newScreenshot();
+    -- screen:encode("png", "test.png")
 
     return nearX, nearY, nearDist;
 end
 
 function Player:draw()
-    if self.attackTime~=-1 then
+    if self.attacking then
         self:showAttack();
     end
 
-    if playerTurn and remainingMoves>0 then
+    if playerTurn and remainingMoves>0 and not self.attacking then
         self:drawMarker(1, 0);
         self:drawMarker(-1, 0);
         self:drawMarker(0, 1);
@@ -114,13 +156,30 @@ end
 function Player:attack()
     if self:damageAttack()==3 then
         aibot.heal = aibot.heal - 1;
-        attackEnd = os.time()+2;
+        if not checkDeath() then
+            doShake();
+        end
     end
 end
 
 function Player:doAttack()
-    if self.attackTime == -1 then
-        self.attackTime = os.time()+2;
+    self.attacking = true;
+    snd_charge:rewind();
+    snd_charge:play();
+    self.attackCron = cron.after(1.5, function()
+        self.attacking = false;
+        self:attack();
+        snd_laser:play();
+    end);
+end
+
+function Player:update(dt)
+    self:superUpdate();
+
+    if self.attackCron then
+        if self.attackCron:update(dt) then
+            self.attackCron = nil;
+        end
     end
 end
 
