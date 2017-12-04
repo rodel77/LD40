@@ -15,9 +15,14 @@ local Map = require "objects/map";
 -- State
 state = 0; -- 0 Main Menu, 1 Tutorial, 2 Play
 tutorialStep = 0;
-playerTurn = false;
+playerTurn = true;
+remainingMoves = 1;
 mouseX = 0;
 mouseY = 0;
+attackEnd = -1;
+
+upress = false;
+dpress = false;
 
 -- Menu
 DEG = 0;
@@ -41,10 +46,8 @@ function love.load()
     loadAssets();
 
     player = Player:new();
-    player:setPosition(1, 1);
 
     aibot = AI:new();
-    aibot:setPosition(4, 4);
 end
 
 function loadAssets()
@@ -66,6 +69,9 @@ function loadAssets()
     bot_fire = createFireParticles(atlas, fire_particle_quad);
     side_pane = love.graphics.newQuad(75, 0, 300, 25, atlas:getDimensions());
 
+    red_cross = love.graphics.newQuad(0, 75, 25, 25, atlas:getDimensions());
+    
+    heal_bar = love.graphics.newQuad(36, 38, 1, 10, atlas:getDimensions());
     icon_laser = love.graphics.newQuad(38, 35, 10, 10, atlas:getDimensions());
     icon_ready = love.graphics.newQuad(38, 45, 10, 10, atlas:getDimensions());
 
@@ -75,6 +81,13 @@ end
 function love.draw()
     CScreen.apply();
 
+    if attackEnd~=-1 then
+        if os.time()>=attackEnd then
+            attackEnd = -1;
+        end
+        love.graphics.translate(math.random(-2, 2), math.random(-2, 2));
+    end
+
     if state == 0 then
         love.graphics.setColor(0, 0, 0);
         love.graphics.print("Greedy Robot Fight", (WIDTH/2)-pressStart:getWidth("Greedy Robot Fight")/2, 30+math.sin(DEG), 0, 1, 1);
@@ -82,7 +95,7 @@ function love.draw()
 
         -- Tutorial
         if check_collision((WIDTH/2)-100*4/2, 100, ((WIDTH/2)-100*4/2)+100*4, 100+25*4, mouseX, mouseY) then
-            if love.mouse.isDown(1) then
+            if dpress then
                 map:update();
                 player:setPosition(map.playerX, map.playerY);
                 aibot:setPosition(map.botX, map.botY);
@@ -105,14 +118,24 @@ function love.draw()
         -- love.graphics.draw(atlas, button, (WIDTH/2)-52*6/2, 70, 0, 6, 6);
     elseif state == 1 then
         love.graphics.draw(tilesetBatch, 50, 50, 0, 4, 4);
-        green();
+        local text = "Bot turn";
+        if playerTurn then
+            text = "Your turn";
+            green();
+        end
         love.graphics.draw(atlas, side_pane, 650+25, 50, 0, 3, 3);
-        draw_shadowy_center_text("Your turn", 650+25+(100*3/2), 50+(25*3/2)); -- Pray for magic numbers
+        draw_shadowy_center_text(text, 650+25+(100*3/2), 50+(25*3/2)); -- Pray for magic numbers
         white();
 
         -- Laser BTN
         if check_collision(650+25, 150, 650+25+(100*3), 150+(25*3), mouseX, mouseY) then
             love.graphics.setColor(254, 174, 52);
+            if dpress and playerTurn then
+                player:doAttack();
+            end
+        end
+        if not playerTurn or remainingMoves < 1 then
+            gray();
         end
 
         love.graphics.draw(atlas, side_pane, 650+25, 150, 0, 3, 3);
@@ -124,6 +147,9 @@ function love.draw()
         if check_collision(650+25, 250, 650+25+(100*3), 250+(25*3), mouseX, mouseY) then
             love.graphics.setColor(254, 174, 52);
         end
+        if not playerTurn then
+            gray();
+        end
 
         love.graphics.draw(atlas, side_pane, 650+25, 250, 0, 3, 3);
         love.graphics.draw(atlas, icon_ready, 650+50+25, 250+(25*3/2), 0, 3, 3, 5, 5);
@@ -131,16 +157,21 @@ function love.draw()
         white();
 
         -- Remaining Moves
-        love.graphics.draw(atlas, side_pane, 650+25, 350, 0, 3, 3);
-        draw_shadowy_center_text("1 remaining moves!", 650+25+(100*3/2), 350+(25*3/2), .6);
-        love.graphics.setColor(255, 255, 255);
+        if playerTurn then
+            love.graphics.draw(atlas, side_pane, 650+25, 350, 0, 3, 3);
+            draw_shadowy_center_text(remainingMoves.." remaining moves!", 650+25+(100*3/2), 350+(25*3/2), .6);
+        end
 
-
-        player:draw();
-        aibot:draw();
+        if playerTurn then
+            player:draw();
+            aibot:draw();
+        else
+            aibot:draw();
+            player:draw();
+        end
     end
-
     CScreen.cease();
+    dpress = false;
 end
 
 function love.update(dt)
@@ -153,6 +184,12 @@ function love.update(dt)
         aibot:update();
         player:update();
     end
+    upress = false;
+end
+
+function love.mousepressed(x, y, button)
+    upress = true;
+    dpress = true;
 end
 
 function love.resize(w, h)

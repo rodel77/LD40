@@ -23,8 +23,8 @@ function Player:drawMarker(relative_x, relative_y)
         size = 4 + math.sin(self.rot) * 0.2;
 
         if love.mouse.isDown(1) then
-            self.grid_x = x;
-            self.grid_y = y;
+            self:setPosition(x, y);
+            -- remainingMoves = remainingMoves - 1;
         end
     end
 
@@ -44,15 +44,40 @@ function Player:drawMarker(relative_x, relative_y)
 end
 
 function Player:draw()
-    if playerTurn then
+    if self.attackTime~=-1 then
+        self:showAttack();
+    end
+
+    if playerTurn and remainingMoves>0 then
         self:drawMarker(1, 0);
         self:drawMarker(-1, 0);
         self:drawMarker(0, 1);
         self:drawMarker(0, -1);
     end
 
-    love.graphics.draw(atlas, bot, self:screenX(), self:screenY(), math.cos(self.rot)*.010, 4, 4- math.sin(self.rot) * 0.1, 12.5, 4);
+    love.graphics.draw(atlas, bot, self:screenX(), self:screenY(), math.cos(self.rot)*.010, 4, 4- self.sin * 0.1, 12.5, 4);
     love.graphics.draw(atlas, heli, self:screenX(), self:screenY(), self.rot, 4, 4, 6.5, 6.5);
+
+    black();
+    love.graphics.rectangle("fill", self:screenX()-50-3, self:screenY()+80-3, 100+6, 20+6);
+    red();
+    love.graphics.draw(atlas, heal_bar, self:screenX()-50, self:screenY()+80, 0, 100, 2);
+    green();
+    love.graphics.draw(atlas, heal_bar, self:screenX()-50, self:screenY()+80, 0, (self.heal/10)*100, 2);
+    white();
+end
+
+function Player:attack()
+    if self:damageAttack()==3 then
+        aibot.heal = aibot.heal - 1;
+        shakeEnd = os.time()+2;
+    end
+end
+
+function Player:doAttack()
+    if self.attackTime == -1 then
+        self.attackTime = os.time()+2;
+    end
 end
 
 return Player;

@@ -42,8 +42,17 @@ function Map:update()
     tilesetBatch:flush();
 end
 
+function Map:set(grid_x, grid_y, val)
+    print(grid_x, grid_y, val);
+    self.currentMap[grid_y][grid_x] = val;
+end
+
+function Map:get(grid_x, grid_y)
+    return self.currentMap[grid_y][grid_x];
+end
+
 function Map:canMove(grid_x, grid_y)
-    return self.currentMap[grid_y][grid_x]~=2;
+    return self:get(grid_x, grid_y)~=2 and self:get(grid_x, grid_y)~=3;
 end
 
 return Map;
