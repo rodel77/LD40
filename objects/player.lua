@@ -1,4 +1,10 @@
-Player = extends(IRobot);
+Player = {};
+
+function Player:new()
+    local o = Player;
+    setmetatable(o, {__index = IRobot});
+    return o;
+end
 
 function Player:drawMarker(relative_x, relative_y)
     local x = self.grid_x + relative_x;

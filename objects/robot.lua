@@ -3,14 +3,9 @@ IRobot = {
     grid_y = 0,
     rot = 0,
     deg = 0,
+    heal = 5,
 };
 IRobotMT = {__index = IRobot};
-
-function IRobot:new()
-    local o = {};
-    setmetatable(o, IRobotMT);
-    return o;
-end
 
 function IRobot:draw()
 end
@@ -34,6 +29,10 @@ end
 function IRobot:setPosition(x, y)
     self.grid_x = x;
     self.grid_y = y;
+end
+
+function IRobot:isAI()
+    return false;
 end
 
 return IRobot;

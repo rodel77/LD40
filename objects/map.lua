@@ -24,12 +24,12 @@ function Map:update()
             local t = val;
 
             if val == 3 then
-                botX = x;
-                botY = y;
+                self.botX = j;
+                self.botY = i;
                 t = 1;
             elseif val == 4 then
-                playerX = x;
-                playerY = y;
+                self.playerX = j;
+                self.playerY = i;
                 t = 1;
             end
             tilesetBatch:add(tile[t], x, y);
