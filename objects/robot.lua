@@ -163,6 +163,7 @@ function IRobot:setPosition(x, y)
     self.grid_x = x;
     self.grid_y = y;
     map:set(x, y, self:getID());
+    print("Move ", x, y);
 end
 
 function IRobot:getID()

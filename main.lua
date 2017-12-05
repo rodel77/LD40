@@ -104,6 +104,7 @@ end
 
 function checkDeath()
     if aibot.heal == 0 or player.heal == 0 then
+        print("Death");
         playerTurn = false;
 
         if aibot.heal == 0 then
@@ -146,7 +147,8 @@ Created in Love2D]], 10, 400);
         if check_collision((WIDTH/2)-100*4/2, (HEIGHT/2)-(25*4), ((WIDTH/2)-100*4/2)+100*4, (HEIGHT/2)-(25*4)+25*4, mouseX, mouseY) then
             if dpress then
                 playerTurn = true;
-                map.currentMap = maps[1];
+                local mapNum = math.random(#maps);
+                map.currentMap = shallowCopy(maps[mapNum]);
                 map:update();
                 player:setPosition(map.playerX, map.playerY);
                 aibot:setPosition(map.botX, map.botY);
@@ -175,7 +177,7 @@ Created in Love2D]], 10, 400);
         -- Laser BTN
         if check_collision(650+25, 150, 650+25+(100*3), 150+(25*3), mouseX, mouseY) then
             love.graphics.setColor(254, 174, 52);
-            if dpress and playerTurn and not player.attacking then
+            if dpress and playerTurn and not player.attacking and remainingMoves > 0 then
                 player:doAttack();
                 remainingMoves = remainingMoves - 1;
             end
@@ -230,8 +232,10 @@ Created in Love2D]], 10, 400);
         if check_collision((WIDTH/2)-100*4/2, (HEIGHT/2)-(25*4), ((WIDTH/2)-100*4/2)+100*4, (HEIGHT/2)-(25*4)+25*4, mouseX, mouseY) then
             if dpress then
                 playerTurn = true;
-                map.currentMap = maps[math.random(#maps)];
+                local mapNum = math.random(#maps);
+                map.currentMap = shallowCopy(maps[mapNum]);
                 map:update();
+                print(mapNum, inspect(map.currentMap));
                 aibot.heal = 10;
                 aibot.heal_barLerp = 100;
                 aibot.attacking = false;

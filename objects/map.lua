@@ -1,5 +1,5 @@
 Map = {
-    currentMap = maps[1],
+    currentMap = shallowCopy(maps[1]),
     playerX = 0,
     playerY = 0,
     botX = 0,
