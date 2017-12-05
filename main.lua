@@ -96,6 +96,7 @@ function loadAssets()
     icon_ready = love.graphics.newQuad(38, 45, 10, 10, atlas:getDimensions());
 
     theme = love.audio.newSource("assets/theme.ogg");
+    theme:setLooping(true);
     theme:play();
 
     tilesetBatch = love.graphics.newSpriteBatch(atlas, 6 * 6);
@@ -112,7 +113,6 @@ function checkDeath()
         end
 
         snd_death:play();
-        theme:pause();
         winTimer = cron.after(2, function()
             state = 2;
         end);
